@@ -1,9 +1,18 @@
-# Esta configuração instrui a Netlify a usar o plugin Next.js,
-# que lida automaticamente com o build e o roteamento.
+# Configuração para um site Next.js estático na Netlify
 
 [build]
+  # O comando de build já executa "next build", que com a configuração
+  # 'output: "export"' no next.config.ts, irá gerar a pasta 'out'.
   command = "npm run build"
-  publish = ".next"
+  
+  # O diretório de publicação é a pasta 'out' gerada pelo build estático.
+  publish = "out"
 
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
+# Regra de redirecionamento para Single-Page Applications (SPA)
+# Isso é crucial para que o roteamento do Next.js no lado do cliente funcione.
+# Qualquer requisição que não encontre um arquivo correspondente (como /login, /dashboard)
+# será redirecionada para o index.html, deixando o roteador do Next.js assumir.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
