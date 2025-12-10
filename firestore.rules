@@ -1,0 +1,173 @@
+/**
+ * Core Philosophy: This ruleset enforces a strict user-ownership model. All user-generated
+ * content, such as expenses, categories, and payment methods, is exclusively accessible by the
+ * user who created it. There is no concept of public data or shared access between users.
+ *
+ * Data Structure: The entire data model is hierarchical and user-scoped. All data is nested
+ * under the `/users/{userId}` path, creating a secure and isolated data silo for each user.
+ * For example, a user's expense categories are stored at `/users/{userId}/categories/{categoryId}`.
+ *
+ * Key Security Decisions:
+ * - User Enumeration is Prevented: Listing the top-level `/users` collection is explicitly
+ *   disallowed to prevent leaking user information.
+ * - No Cross-User Access: Rules strictly enforce that a user's authentication UID must match
+ *   the `{userId}` wildcard in the path they are trying to access.
+ * - Default Deny: Access is denied by default. Permissions must be explicitly granted.
+ * - Performance-Optimized Authorization: The path-based security model avoids the need for
+ *   costly `get()` or `exists()` calls to other documents for authorization checks, resulting
+ *   in faster and more scalable rules.
+ *
+ * Denormalization for Authorization: The primary method of authorization is the document path
+ * itself. The `{userId}` in the path acts as the denormalized ownership link, making rules
+ * like `request.auth.uid == userId` simple, fast, and secure. This avoids needing an `ownerId`
+ * field on every document for basic ownership checks.
+ *
+ * Structural Segregation: Each type of user data (categories, payment methods, expenses, etc.)
+ * is stored in its own dedicated subcollection under the user's path. This segregation ensures
+ * that the security rules for each data type are clear, simple, and isolated from one another.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    //-------------------------------------------------------------------------
+    // Helper Functions
+    //-------------------------------------------------------------------------
+
+    /**
+     * Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Validates if the currently authenticated user is the owner of the resource
+     * based on the userId provided in the document path.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * A robust check for update and delete operations, ensuring the user is the
+     * owner AND the document already exists.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    //-------------------------------------------------------------------------
+    // User Data Scoped Rules
+    //-------------------------------------------------------------------------
+
+    /**
+     * @description Secures the top-level user document. This allows a user to
+     *   manage their own user document but prevents them from seeing or listing
+     *   other users' documents.
+     * @path /users/{userId}
+     * @allow A newly signed-up user (create) their own document at `/users/USER_123`.
+     * @deny A user (read) the document at `/users/OTHER_USER_456`.
+     * @deny Any user (list) the `/users` collection to prevent user enumeration.
+     * @principle Restricts access to a user's own root document and prevents data leakage.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+    
+    /**
+     * @description Secures a user's settings. Only the owning user can
+     *   read or write their own settings.
+     * @path /users/{userId}/settings/{settingId}
+     * @allow User 'USER_123' (get) a setting from their own subcollection.
+     * @deny An unauthenticated user (delete) any setting.
+     * @principle Enforces strict data ownership for user-specific configurations.
+     */
+    match /users/{userId}/settings/{settingId} {
+      allow get, list, create, update, delete: if isOwner(userId);
+    }
+
+    /**
+     * @description Secures a user's profile document. Only the owning user can
+     *   read or write their own profile.
+     * @path /users/{userId}/profile/main
+     * @allow User 'USER_123' (get, create, update) their own profile document.
+     * @deny Another user (read, write) the profile document.
+     * @principle Enforces strict data ownership for user-specific profile information.
+     */
+    match /users/{userId}/profile/main {
+      allow get, create, update: if isOwner(userId);
+      allow list, delete: if false; // List and delete are not allowed for the profile
+    }
+
+    /**
+     * @description Secures a user's expense categories. Only the owning user can
+     *   read or write their own categories.
+     * @path /users/{userId}/categories/{categoryId}
+     * @allow User 'USER_123' (create) a new category document in their own subcollection.
+     * @deny User 'USER_456' (update) a category in '/users/USER_123/categories/...'.
+     * @principle Enforces strict data ownership within a user's private data tree.
+     */
+    match /users/{userId}/categories/{categoryId} {
+      allow get, list, create, update, delete: if isOwner(userId);
+    }
+
+    /**
+     * @description Secures a user's payment methods. Only the owning user can
+     *   read or write their own payment methods.
+     * @path /users/{userId}/paymentMethods/{paymentMethodId}
+     * @allow User 'USER_123' (get) a payment method from their own subcollection.
+     * @deny An unauthenticated user (delete) any payment method.
+     * @principle Enforces strict data ownership within a user's private data tree.
+     */
+    match /users/{userId}/paymentMethods/{paymentMethodId} {
+      allow get, list, create, update, delete: if isOwner(userId);
+    }
+    
+    /**
+     * @description Secures a user's banks. Only the owning user can
+     *   read or write their own banks.
+     * @path /users/{userId}/banks/{bankId}
+     * @allow User 'USER_123' (get) a bank from their own subcollection.
+     * @deny An unauthenticated user (delete) any bank.
+     * @principle Enforces strict data ownership for user-specific configurations.
+     */
+    match /users/{userId}/banks/{bankId} {
+        allow get, list, create, update, delete: if isOwner(userId);
+    }
+
+    /**
+     * @description Secures a user's expense entries. Only the owning user can
+     *   read or write their own expenses.
+     * @path /users/{userId}/expenses/{expenseId}
+     * @allow User 'USER_123' (list) all expenses in their own subcollection.
+     * @deny User 'USER_456' (create) an expense in '/users/USER_123/expenses/...'.
+     * @principle Enforces strict data ownership within a user's private data tree.
+     */
+    match /users/{userId}/expenses/{expenseId} {
+      allow get, list, delete: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Secures installment details for an expense. Access is granted
+     *   based on ownership of the parent user path.
+     * @path /users/{userId}/expenses/{expenseId}/installments/{installmentId}
+     * @allow User 'USER_123' (create) a new installment under one of their own expenses.
+     * @deny User 'USER_456' (get) an installment from another user's expense.
+     * @principle Validates relational integrity by ensuring created installments
+     *   correctly reference their parent expense ID.
+     */
+    match /users/{userId}/expenses/{expenseId}/installments/{installmentId} {
+      allow get, list, delete: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == installmentId && request.resource.data.expenseId == expenseId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id && request.resource.data.expenseId == resource.data.expenseId;
+      allow delete: if isExistingOwner(userId);
+    }
+  }
+}

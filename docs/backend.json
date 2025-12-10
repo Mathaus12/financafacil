@@ -1,0 +1,355 @@
+{
+  "entities": {
+    "Expense": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Expense",
+      "type": "object",
+      "description": "Represents a single expense entry.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the expense entry."
+        },
+        "categoryId": {
+          "type": "string",
+          "description": "Reference to Category. (Relationship: Category 1:N Expense)"
+        },
+        "paymentMethodId": {
+          "type": "string",
+          "description": "Reference to PaymentMethod. (Relationship: PaymentMethod 1:N Expense)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of the expense."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date of the expense.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the expense."
+        },
+        "installmentDetails": {
+          "type": "array",
+          "description": "If the expense is in installments, contains references to each installment.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "categoryId",
+        "paymentMethodId",
+        "amount",
+        "date"
+      ]
+    },
+    "Category": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Category",
+      "type": "object",
+      "description": "Represents a category of expenses (e.g., food, rent, transport).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the expense category."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the category."
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "PaymentMethod": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PaymentMethod",
+      "type": "object",
+      "description": "Represents a payment method (e.g., credit card, debit card, cash).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the payment method."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the payment method."
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "Installment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Installment",
+      "type": "object",
+      "description": "Represents an installment of an expense paid over multiple months.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the installment."
+        },
+        "expenseId": {
+          "type": "string",
+          "description": "Reference to Expense. (Relationship: Expense 1:N Installment)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of the installment."
+        },
+        "dueDate": {
+          "type": "string",
+          "description": "The due date of the installment.",
+          "format": "date-time"
+        },
+        "isPaid": {
+          "type": "boolean",
+          "description": "Whether the installment has been paid."
+        }
+      },
+      "required": [
+        "id",
+        "expenseId",
+        "amount",
+        "dueDate"
+      ]
+    },
+    "UserSetting": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserSetting",
+      "type": "object",
+      "description": "Represents a user-specific setting, like monthly salary.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the setting document."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The value of the setting, e.g., salary amount."
+        }
+      },
+      "required": [
+        "id",
+        "amount"
+      ]
+    },
+    "Bank": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Bank",
+      "type": "object",
+      "description": "Represents a bank or financial institution.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the bank."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the bank."
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user's profile information.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user profile."
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's full name."
+        },
+        "birthDate": {
+          "type": "string",
+          "format": "date",
+          "description": "The user's date of birth."
+        },
+        "workplace": {
+          "type": "string",
+          "description": "The user's place of work."
+        },
+        "position": {
+          "type": "string",
+          "description": "The user's job title or position."
+        },
+        "role": {
+          "type": "string",
+          "description": "The user's main function or role at their job."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "birthDate"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}/categories/{categoryId}",
+        "definition": {
+          "entityName": "Category",
+          "schema": {
+            "$ref": "#/backend/entities/Category"
+          },
+          "description": "Stores expense categories for each user. Path-based ownership ensures only the user can access their categories.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user."
+            },
+            {
+              "name": "categoryId",
+              "description": "The ID of the expense category."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/paymentMethods/{paymentMethodId}",
+        "definition": {
+          "entityName": "PaymentMethod",
+          "schema": {
+            "$ref": "#/backend/entities/PaymentMethod"
+          },
+          "description": "Stores payment methods for each user. Path-based ownership ensures only the user can access their payment methods.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user."
+            },
+            {
+              "name": "paymentMethodId",
+              "description": "The ID of the payment method."
+            }
+          ]
+        }
+      },
+       {
+        "path": "/users/{userId}/banks/{bankId}",
+        "definition": {
+          "entityName": "Bank",
+          "schema": {
+            "$ref": "#/backend/entities/Bank"
+          },
+          "description": "Stores banks for each user. Path-based ownership ensures only the user can access their banks.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user."
+            },
+            {
+              "name": "bankId",
+              "description": "The ID of the bank."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/expenses/{expenseId}",
+        "definition": {
+          "entityName": "Expense",
+          "schema": {
+            "$ref": "#/backend/entities/Expense"
+          },
+          "description": "Stores expense entries for each user. Path-based ownership ensures only the user can access their expenses.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user."
+            },
+            {
+              "name": "expenseId",
+              "description": "The ID of the expense entry."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/expenses/{expenseId}/installments/{installmentId}",
+        "definition": {
+          "entityName": "Installment",
+          "schema": {
+            "$ref": "#/backend/entities/Installment"
+          },
+          "description": "Stores installment details for each expense, nested under the expense document. Path-based ownership ensures only the user can access installments related to their expenses.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user."
+            },
+            {
+              "name": "expenseId",
+              "description": "The ID of the expense entry."
+            },
+            {
+              "name": "installmentId",
+              "description": "The ID of the installment."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/settings/{settingId}",
+        "definition": {
+          "entityName": "UserSetting",
+          "schema": {
+            "$ref": "#/backend/entities/UserSetting"
+          },
+          "description": "Stores user-specific settings. Path-based ownership ensures only the user can access their own settings.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user."
+            },
+            {
+              "name": "settingId",
+              "description": "The ID of the setting document (e.g., 'salary')."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/profile/main",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores the user's profile information in a single document. Path-based ownership ensures only the user can access their own profile.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to manage user expenses, categories, payment methods, and installments. It prioritizes authorization independence by placing all data under user-specific collections (`/users/{userId}`). This eliminates the need for `get()` calls in security rules, allowing for atomic operations and simplified security management.  User-owned data is stored in hierarchical paths, ensuring secure and efficient ownership-based security rules (e.g., `/users/{userId}/categories/{categoryId}`). This approach avoids complex rule logic and enhances debuggability. Segregation is achieved by storing related data (categories, payment methods, expenses, and installments) in separate collections under the user's document, ensuring each collection has a clear security posture. This eliminates the need to mix documents with different access requirements in the same collection.  The structure supports required QAPs by using path-based ownership for all user-related data. List operations are secure because access control is enforced at the collection level, based on the user's ID in the path. There is no cross-user data mixing, and security rules can efficiently validate access based on the `request.auth.uid`."
+  }
+}

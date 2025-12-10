@@ -1,0 +1,16 @@
+# Configuração para a Netlify
+# Este arquivo diz à Netlify como construir e implantar seu site.
+
+[build]
+  # Comando para construir o site. Ele executa o script "build" do seu package.json.
+  command = "npm run build"
+  
+  # Diretório que será publicado. O "npm run build" gera a pasta "out".
+  publish = "out"
+
+[dev]
+  # Comando para rodar o ambiente de desenvolvimento local (opcional)
+  command = "npm run dev"
+  
+  # Porta para o servidor de desenvolvimento
+  port = 3000
