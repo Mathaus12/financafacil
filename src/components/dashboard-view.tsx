@@ -9,9 +9,23 @@ import { ExpensesOverTimeChart } from "./charts/expenses-over-time-chart";
 
 interface DashboardViewProps {
     expenses: Expense[];
+    activeCategory: string | null;
+    onCategorySelect: (category: string | null) => void;
+    activePaymentMethod: string | null;
+    onPaymentMethodSelect: (method: string | null) => void;
+    activeStatus: string | null;
+    onStatusSelect: (status: string | null) => void;
 }
 
-export function DashboardView({ expenses }: DashboardViewProps) {
+export function DashboardView({ 
+    expenses,
+    activeCategory,
+    onCategorySelect,
+    activePaymentMethod,
+    onPaymentMethodSelect,
+    activeStatus,
+    onStatusSelect,
+ }: DashboardViewProps) {
     return (
         <div className="flex flex-col gap-4 md:gap-8">
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -21,7 +35,11 @@ export function DashboardView({ expenses }: DashboardViewProps) {
                         <BarChart className="h-5 w-5 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <ExpensesByCategoryChart expenses={expenses} />
+                        <ExpensesByCategoryChart 
+                            expenses={expenses}
+                            activeItem={activeCategory}
+                            onItemSelect={onCategorySelect}
+                         />
                     </CardContent>
                 </Card>
                  <Card>
@@ -30,7 +48,11 @@ export function DashboardView({ expenses }: DashboardViewProps) {
                         <CreditCard className="h-5 w-5 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <ExpensesByPaymentMethodChart expenses={expenses} />
+                        <ExpensesByPaymentMethodChart 
+                            expenses={expenses} 
+                            activeItem={activePaymentMethod}
+                            onItemSelect={onPaymentMethodSelect}
+                        />
                     </CardContent>
                 </Card>
                 <Card>
@@ -39,7 +61,11 @@ export function DashboardView({ expenses }: DashboardViewProps) {
                          <PieChart className="h-5 w-5 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <PaidVsUnpaidChart expenses={expenses} />
+                        <PaidVsUnpaidChart 
+                            expenses={expenses}
+                            activeItem={activeStatus}
+                            onItemSelect={onStatusSelect}
+                        />
                     </CardContent>
                 </Card>
             </div>

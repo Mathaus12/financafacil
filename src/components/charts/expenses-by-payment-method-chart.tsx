@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo } from "react";
-import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, LabelList } from "recharts";
+import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, LabelList, Cell } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import type { Expense } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
@@ -9,30 +9,27 @@ import { useData } from "@/context/data-context";
 
 interface ExpensesByPaymentMethodChartProps {
   expenses: Expense[];
+  activeItem: string | null;
+  onItemSelect: (item: string | null) => void;
 }
 
 const CustomLabel = (props: any) => {
-  const { x, y, width, height, value, fill } = props;
-  const formattedValue = formatCurrency(value);
-  const labelWidth = formattedValue.length * 7; // Approximate width of the label
-  
-  const fitsInside = width > labelWidth + 10;
-  
-  return (
-    <text
-      x={fitsInside ? x + width - 5 : x + width + 5}
-      y={y + height / 2}
-      dy={4}
-      fill={fitsInside ? fill : "hsl(var(--foreground))"}
-      textAnchor={fitsInside ? "end" : "start"}
-      className="text-xs font-medium"
-    >
-      {formattedValue}
-    </text>
-  );
-};
+    const { x, y, width, value } = props;
+    return (
+      <text
+        x={x + width + 5}
+        y={y + props.height / 2}
+        fill={'hsl(var(--foreground))'}
+        textAnchor={'start'}
+        dominantBaseline="middle"
+        className="text-xs font-medium"
+      >
+        {formatCurrency(value)}
+      </text>
+    );
+  };
 
-export function ExpensesByPaymentMethodChart({ expenses }: ExpensesByPaymentMethodChartProps) {
+export function ExpensesByPaymentMethodChart({ expenses, activeItem, onItemSelect }: ExpensesByPaymentMethodChartProps) {
   const { paymentMethods } = useData();
 
   const chartData = useMemo(() => {
@@ -45,7 +42,9 @@ export function ExpensesByPaymentMethodChart({ expenses }: ExpensesByPaymentMeth
         name: method.name,
         total: total,
       };
-    }).filter(item => item.total > 0);
+    })
+    .filter(item => item.total > 0)
+    .sort((a, b) => b.total - a.total);
   }, [expenses, paymentMethods]);
   
   if (chartData.length === 0) {
@@ -59,6 +58,13 @@ export function ExpensesByPaymentMethodChart({ expenses }: ExpensesByPaymentMeth
     },
   };
 
+  const handleBarClick = (data: any) => {
+    if (data && data.activePayload && data.activePayload.length > 0) {
+      const payload = data.activePayload[0].payload;
+      onItemSelect(activeItem === payload.name ? null : payload.name);
+    }
+  };
+
   return (
     <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
       <ResponsiveContainer width="100%" height={300}>
@@ -67,8 +73,10 @@ export function ExpensesByPaymentMethodChart({ expenses }: ExpensesByPaymentMeth
           layout="vertical"
           margin={{
             left: 10,
-            right: 50
+            right: 80
           }}
+          onClick={handleBarClick}
+          style={{ cursor: 'pointer' }}
         >
           <XAxis type="number" hide />
           <YAxis
@@ -87,18 +95,25 @@ export function ExpensesByPaymentMethodChart({ expenses }: ExpensesByPaymentMeth
             }}
           />
           <ChartTooltip
-            cursor={false}
+            cursor={{ fill: 'hsl(var(--accent))' }}
             content={<ChartTooltipContent 
                 formatter={(value) => formatCurrency(value as number)}
                 indicator="dot" 
             />}
           />
-          <Bar dataKey="total" fill="var(--color-total)" radius={5}>
+          <Bar dataKey="total" radius={5}>
              <LabelList
-              dataKey="total"
-              position="insideRight"
-              content={<CustomLabel fill="#FFFFFF" />}
+                dataKey="total"
+                position="right"
+                content={<CustomLabel />}
             />
+            {chartData.map((entry, index) => (
+                <Cell 
+                    key={`cell-${index}`} 
+                    fill={'var(--color-total)'}
+                    opacity={activeItem === null || activeItem === entry.name ? 1 : 0.3}
+                />
+            ))}
           </Bar>
         </BarChart>
       </ResponsiveContainer>
