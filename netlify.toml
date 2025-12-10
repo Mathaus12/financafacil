@@ -5,12 +5,14 @@
   # Comando para construir o site. Ele executa o script "build" do seu package.json.
   command = "npm run build"
   
-  # Diretório que será publicado. O "npm run build" gera a pasta "out".
+  # Diretório que será publicado. O "npm run build" gera a pasta "out"
+  # por causa da configuração "output: 'export'" no next.config.ts.
   publish = "out"
 
-[dev]
-  # Comando para rodar o ambiente de desenvolvimento local (opcional)
-  command = "npm run dev"
-  
-  # Porta para o servidor de desenvolvimento
-  port = 3000
+# Esta seção é a chave da solução.
+# Ela desativa o plugin Next.js Runtime da Netlify (@netlify/plugin-nextjs),
+# que estava causando o conflito ao tentar um build SSR em vez de estático.
+[functions]
+  node_bundler = "esbuild"
+  [functions."next_*"]
+    included_files = ["!**"]
