@@ -1,11 +1,9 @@
+# Esta configuração instrui a Netlify a usar o plugin Next.js,
+# que lida automaticamente com o build e o roteamento.
+
 [build]
   command = "npm run build"
   publish = ".next"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
